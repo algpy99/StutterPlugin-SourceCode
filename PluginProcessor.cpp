@@ -5,7 +5,7 @@
 
   ==============================================================================
 */
-// Add disto
+// Add rev
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
