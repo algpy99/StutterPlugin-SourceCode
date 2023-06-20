@@ -13,10 +13,7 @@
 //==============================================================================
 /**
 */
-class StutterPluginAudioProcessor : public juce::AudioProcessor
-#if JucePlugin_Enable_ARA
-    , public juce::AudioProcessorARAExtension
-#endif
+class StutterPluginAudioProcessor : public juce::AudioProcessor, public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
@@ -56,12 +53,26 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    juce::AudioProcessorValueTreeState treeState;
+
 private:
     //==============================================================================
-    juce::AudioProcessorValueTreeState state;
 
+    juce::Reverb::Parameters parameters;
+
+    float roomSize = false;
+    float wetLevel = false;
+    float width = false;
+
+    juce::dsp::Reverb reverb;
+
+    juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void parameterChanged (const juce::String& parameterID, float newValue) override;
+
+    /*
     int delayBufferPos = 0;
     juce::AudioBuffer<float> delayBuffer;
+    */
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StutterPluginAudioProcessor)
 };
