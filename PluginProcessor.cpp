@@ -5,6 +5,7 @@
 
   ==============================================================================
 */
+// Add disto
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -24,8 +25,8 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     , state(*this, nullptr, "STATE", {
         std::make_unique<juce::AudioParameterFloat>("gain",      "Gain",              0.0f, 1.0f, 1.0f),
         std::make_unique<juce::AudioParameterFloat>("feedback",  "Delay Feedback",    0.0f, 1.0f, 0.35f),
-        std::make_unique<juce::AudioParameterFloat>("mix",       "Dry/Wet",           0.0f, 1.0f, 0.5f)
-
+        std::make_unique<juce::AudioParameterFloat>("mix",       "Dry/Wet",           0.0f, 1.0f, 0.5f),
+        std::make_unique<juce::AudioParameterFloat>("drive",     "Drive",             1.0f, 10.0f, 1.0f)
         })
 {
 }
@@ -99,6 +100,15 @@ void StutterPluginAudioProcessor::changeProgramName(int index, const juce::Strin
 //==============================================================================
 void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    /*
+    juce::dsp::ProcessSpec spec;
+    spec.maximumBlockSize = samplesPerBlock;
+    spec.sampleRate = sampleRate;
+    spec.numChannels = getTotalNumOutputChannels();
+
+    distortion.prepare(spec);
+    */
+
     int delayMilliseconds = 200;
     auto delaySamples = (int)std::round(sampleRate * delayMilliseconds / 1000.0);
     delayBuffer.setSize(2, delaySamples);
@@ -147,9 +157,12 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     auto& parameters = getParameters();
 
-    float gain = parameters[0]->getValue();
-    float feedback = parameters[1]->getValue();
-    float mix = parameters[2]->getValue();
+    
+    float gain      = parameters[0]->getValue();
+    float feedback  = parameters[1]->getValue();
+    float mix       = parameters[2]->getValue();
+
+    float drive     = parameters[3]->getValue();
 
     int delayBufferSize = delayBuffer.getNumSamples();
 
@@ -161,6 +174,9 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         for (int i = 0; i < buffer.getNumSamples(); ++i)
         {
             float drySample = channelData[i];
+
+            drySample = std::atan(drySample * 10.0f * drive);
+
             float delaySample = delayBuffer.getSample(channel, delayPos) * feedback;
             delayBuffer.setSample(channel, delayPos, drySample + delaySample);
 
