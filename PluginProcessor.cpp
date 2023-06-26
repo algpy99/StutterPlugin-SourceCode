@@ -9,6 +9,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "Distortion.h"
 
 //==============================================================================
 StutterPluginAudioProcessor::StutterPluginAudioProcessor()
@@ -23,9 +24,11 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     ), treeState (*this, nullptr, "PARAMETERS", createParameterLayout())
 #endif
 {
-    treeState.addParameterListener("roomSize", this);
     treeState.addParameterListener("wetLevel", this);
-    treeState.addParameterListener("width", this);    
+
+    treeState.addParameterListener("drive", this);
+    treeState.addParameterListener("mix", this);
+    treeState.addParameterListener("output", this);
 
     /*
     float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
@@ -40,23 +43,28 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
 
 StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
 {
-    treeState.removeParameterListener("roomSize", this);
     treeState.removeParameterListener("wetLevel", this);
-    treeState.removeParameterListener("width", this);
+
+    treeState.removeParameterListener("drive", this);
+    treeState.removeParameterListener("mix", this);
+    treeState.removeParameterListener("output", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
     
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    
-    auto pRoomSize = std::make_unique<juce::AudioParameterFloat>("roomSize", "RoomSize", 0.0f, 1.0f, 0.5f);
     auto pWetLevel = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
-    auto pWidth = std::make_unique<juce::AudioParameterFloat>("width", "Width", 0.0f, 1.0f, 0.5f);
     
-    params.push_back(std::move(pRoomSize));
+    auto pDrive = std::make_unique<juce::AudioParameterFloat>("drive", "Drive", 0.0f, 24.0f, 0.0f);
+    auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
+    auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
+    
     params.push_back(std::move(pWetLevel));
-    params.push_back(std::move(pWidth));
+
+    params.push_back(std::move(pDrive));
+    params.push_back(std::move(pMix));
+    params.push_back(std::move(pOutput));
     
 
     return { params.begin(), params.end() };
@@ -64,26 +72,34 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
 
 void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
 {
-    if (parameterID == "roomSize")
-    {
-        roomSize = newValue;
-        DBG("roomSize is: " << newValue);
-    }
+    updateParameters();
 
+    
     if (parameterID == "wetLevel")
     {
         wetLevel = newValue;
         DBG("wetLevel is: " << newValue);
     }
 
-    if (parameterID == "width")
+    /*
+    if (parameterID == "drive")
     {
-        width = newValue;
-        DBG("width is: " << newValue);
+        drive = newValue;
+        DBG("drive is: " << newValue);
     }
-    treeState.addParameterListener("roomSize", this);
+    */
     treeState.addParameterListener("wetLevel", this);
-    treeState.addParameterListener("width", this);
+
+    treeState.addParameterListener("drive", this);
+    treeState.addParameterListener("mix", this);
+    treeState.addParameterListener("output", this);
+}
+
+void StutterPluginAudioProcessor::updateParameters()
+{
+    distortion.setDrive(treeState.getRawParameterValue("drive")->load());
+    distortion.setMix(treeState.getRawParameterValue("mix")->load());
+    distortion.setOutput(treeState.getRawParameterValue("output")->load());
 }
 
 //==============================================================================
@@ -156,17 +172,13 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     spec.sampleRate = sampleRate;
     spec.numChannels = getTotalNumOutputChannels();
 
+    distortion.reset();
+    distortion.prepare(spec);
+
     reverb.reset();
     reverb.prepare(spec);
 
-    /*
-    int delayMilliseconds = 200;
-    auto delaySamples = (int)std::round(sampleRate * delayMilliseconds / 1000.0);
-    delayBuffer.setSize(2, delaySamples);
-    delayBuffer.clear();
-    delayBufferPos = 0;
-    */
-
+    updateParameters();
 }
 
 void StutterPluginAudioProcessor::releaseResources()
@@ -207,72 +219,18 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        buffer.clear(i, 0, buffer.getNumSamples());
+
     juce::dsp::AudioBlock<float> block {buffer};
 
-    parameters.roomSize = roomSize;
     parameters.wetLevel = wetLevel;
-    parameters.width = width;
 
     reverb.setParameters(parameters);
 
     reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 
-    /*
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        float* channelData = block.getChannelPointer(channel);
-
-        for (int i = 0; i < block.getNumSamples(); ++i)
-        {
-            
-        }
-    }
-    */
-    
-
-    /*
-    auto& parameters = getParameters();
-    
-    float gain      = parameters[0]->getValue();
-    float feedback  = parameters[1]->getValue();
-    float mix       = parameters[2]->getValue();
-
-    float drive     = parameters[3]->getValue();
-
-    int delayBufferSize = delayBuffer.getNumSamples();
-
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer(channel);
-        int delayPos = delayBufferPos;
-
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-        {
-            float drySample = channelData[i];
-
-            drySample = std::atan(drySample * 10.0f * drive);
-
-            float delaySample = delayBuffer.getSample(channel, delayPos) * feedback;
-            delayBuffer.setSample(channel, delayPos, drySample + delaySample);
-
-            delayPos++;
-
-            if (delayPos == delayBufferSize)
-            {
-                delayPos = 0;
-            }
-
-            channelData[i] = (drySample * (1.0f - mix)) + (delaySample * mix);
-            channelData[i] *= gain;
-        }
-    }
-
-    delayBufferPos += buffer.getNumSamples();
-    if (delayBufferPos >= delayBufferSize)
-    {
-        delayBufferPos -= delayBufferSize;
-    }
-    */
+    distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
 
 }
 

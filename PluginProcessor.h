@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "Distortion.h"
 
 //==============================================================================
 /**
@@ -59,20 +60,30 @@ private:
     //==============================================================================
 
     juce::Reverb::Parameters parameters;
-
-    float roomSize = false;
     float wetLevel = false;
-    float width = false;
+
+    Distortion<float> distortion;
+    float drive = false;
+    float mix = false;
+    float output = false;
+
+    /*
+    const juce::String inputID = "input";
+    const juce::String inputName = "Input";
+
+    const juce::String outputID = "output";
+    const juce::String outputName = "Output";
+
+    const juce::String mixID = "mix";
+    const juce::String mixName = "Mix";
+    */
 
     juce::dsp::Reverb reverb;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged (const juce::String& parameterID, float newValue) override;
 
-    /*
-    int delayBufferPos = 0;
-    juce::AudioBuffer<float> delayBuffer;
-    */
+    void updateParameters();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(StutterPluginAudioProcessor)
 };
