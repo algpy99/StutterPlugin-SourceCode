@@ -5,7 +5,7 @@
 
   ==============================================================================
 */
-// Add disto
+// Add rev
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -20,19 +20,70 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
 #endif
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-    )
+    ), treeState (*this, nullptr, "PARAMETERS", createParameterLayout())
 #endif
-    , state(*this, nullptr, "STATE", {
-        std::make_unique<juce::AudioParameterFloat>("gain",      "Gain",              0.0f, 1.0f, 1.0f),
-        std::make_unique<juce::AudioParameterFloat>("feedback",  "Delay Feedback",    0.0f, 1.0f, 0.35f),
-        std::make_unique<juce::AudioParameterFloat>("mix",       "Dry/Wet",           0.0f, 1.0f, 0.5f),
-        std::make_unique<juce::AudioParameterFloat>("drive",     "Drive",             1.0f, 10.0f, 1.0f)
-        })
 {
+    treeState.addParameterListener("roomSize", this);
+    treeState.addParameterListener("wetLevel", this);
+    treeState.addParameterListener("width", this);    
+
+    /*
+    float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
+    float damping = 0.5f;     /**< Damping, 0 to 1.0, where 0 is not damped, 1.0 is fully damped. 
+    float wetLevel = 0.33f;    /**< Wet level, 0 to 1.0 
+    float dryLevel = 0.4f;     /**< Dry level, 0 to 1.0 
+    float width = 1.0f;     /**< Reverb width, 0 to 1.0, where 1.0 is very wide. 
+    float freezeMode = 0.0f;     /**< Freeze mode - values < 0.5 are "normal" mode, values > 0.5
+                                      put the reverb into a continuous feedback loop.
+    */
 }
 
 StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
 {
+    treeState.removeParameterListener("roomSize", this);
+    treeState.removeParameterListener("wetLevel", this);
+    treeState.removeParameterListener("width", this);
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
+    
+    std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
+
+    
+    auto pRoomSize = std::make_unique<juce::AudioParameterFloat>("roomSize", "RoomSize", 0.0f, 1.0f, 0.5f);
+    auto pWetLevel = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
+    auto pWidth = std::make_unique<juce::AudioParameterFloat>("width", "Width", 0.0f, 1.0f, 0.5f);
+    
+    params.push_back(std::move(pRoomSize));
+    params.push_back(std::move(pWetLevel));
+    params.push_back(std::move(pWidth));
+    
+
+    return { params.begin(), params.end() };
+}
+
+void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    if (parameterID == "roomSize")
+    {
+        roomSize = newValue;
+        DBG("roomSize is: " << newValue);
+    }
+
+    if (parameterID == "wetLevel")
+    {
+        wetLevel = newValue;
+        DBG("wetLevel is: " << newValue);
+    }
+
+    if (parameterID == "width")
+    {
+        width = newValue;
+        DBG("width is: " << newValue);
+    }
+    treeState.addParameterListener("roomSize", this);
+    treeState.addParameterListener("wetLevel", this);
+    treeState.addParameterListener("width", this);
 }
 
 //==============================================================================
@@ -100,20 +151,21 @@ void StutterPluginAudioProcessor::changeProgramName(int index, const juce::Strin
 //==============================================================================
 void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    /*
     juce::dsp::ProcessSpec spec;
     spec.maximumBlockSize = samplesPerBlock;
     spec.sampleRate = sampleRate;
     spec.numChannels = getTotalNumOutputChannels();
 
-    distortion.prepare(spec);
-    */
+    reverb.reset();
+    reverb.prepare(spec);
 
+    /*
     int delayMilliseconds = 200;
     auto delaySamples = (int)std::round(sampleRate * delayMilliseconds / 1000.0);
     delayBuffer.setSize(2, delaySamples);
     delayBuffer.clear();
     delayBufferPos = 0;
+    */
 
 }
 
@@ -155,8 +207,31 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    auto& parameters = getParameters();
+    juce::dsp::AudioBlock<float> block {buffer};
 
+    parameters.roomSize = roomSize;
+    parameters.wetLevel = wetLevel;
+    parameters.width = width;
+
+    reverb.setParameters(parameters);
+
+    reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
+
+    /*
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    {
+        float* channelData = block.getChannelPointer(channel);
+
+        for (int i = 0; i < block.getNumSamples(); ++i)
+        {
+            
+        }
+    }
+    */
+    
+
+    /*
+    auto& parameters = getParameters();
     
     float gain      = parameters[0]->getValue();
     float feedback  = parameters[1]->getValue();
@@ -197,6 +272,7 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     {
         delayBufferPos -= delayBufferSize;
     }
+    */
 
 }
 
@@ -215,18 +291,25 @@ juce::AudioProcessorEditor* StutterPluginAudioProcessor::createEditor()
 //==============================================================================
 void StutterPluginAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
-
-    if (auto xmlState = state.copyState().createXml())
-        copyXmlToBinary(*xmlState, destData);
+    /*
+    treeState.state.appendChild(variableTree, nullptr);
+    juce::MemoryOutputStream stream(destData, false);
+    treeState.state.writeToStream(stream);
+    */
 }
 
 void StutterPluginAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    // You should use this method to restore your parameters from this memory block,
-    // whose contents will have been created by the getStateInformation() call.
+    /*
+    auto tree = juce::ValueTree::readFromData(data, size_t(sizeInBytes));
+    variableTree = tree.getChildWithName("Variables");
+
+    if (tree.isValid())
+    {
+        treeSate.state = tree;
+    }
+    */
+
 }
 
 //==============================================================================
