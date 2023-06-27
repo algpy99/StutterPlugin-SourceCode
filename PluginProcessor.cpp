@@ -29,7 +29,7 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
 
-    treeState.addParameterListener("waveType", this);
+    treeState.addParameterListener("lfoType", this);
 
     /*
     float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
@@ -50,14 +50,14 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
     treeState.removeParameterListener("mix", this);
     treeState.removeParameterListener("output", this);
 
-    treeState.addParameterListener("waveType", this);
+    treeState.addParameterListener("lfoType", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
     
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    juce::StringArray waveTypes = { "Sine", "Saw", "Square" };
+    juce::StringArray lfoTypes = { "Sine", "Saw", "Square" };
 
 
     auto pWetLevel = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
@@ -66,7 +66,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
     auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
 
-    auto pWaveType = std::make_unique<juce::AudioParameterChoice>("waveType", "Wave Type", waveTypes, 0);
+    auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
     
     params.push_back(std::move(pWetLevel));
 
@@ -74,7 +74,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     params.push_back(std::move(pMix));
     params.push_back(std::move(pOutput));
 
-    params.push_back(std::move(pWaveType));
+    params.push_back(std::move(pLFOType));
     
 
     return { params.begin(), params.end() };
@@ -100,20 +100,20 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
 
 void StutterPluginAudioProcessor::updateParameters()
 {
-    auto model = static_cast<int>(treeState.getRawParameterValue("waveType")->load());
-    switch (model)
+    auto type = static_cast<int>(treeState.getRawParameterValue("lfoType")->load());
+    switch (type)
     {
     case 0:
-        lfo.setWaveType(LFOGenerator::WaveType::kSine);
+        lfo.setLFOType(LFOGenerator<float>::LFOType::kSine);
         break;
     case 1:
-        lfo.setWaveType(LFOGenerator::WaveType::kSaw);
+        lfo.setLFOType(LFOGenerator<float>::LFOType::kSaw);
         break;
     case 2:
-        lfo.setWaveType(LFOGenerator::WaveType::kSquare);
+        lfo.setLFOType(LFOGenerator<float>::LFOType::kSquare);
         break;
     }
-
+   
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
     distortion.setOutput(treeState.getRawParameterValue("output")->load());
@@ -195,9 +195,11 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     reverb.reset();
     reverb.prepare(spec);
 
+    /*
     lfo.reset();
     lfo.prepare(spec);
     lfo.setParameter(LFOGenerator::ParameterId::kFrequency, 500);
+    */
 
     updateParameters();
 }

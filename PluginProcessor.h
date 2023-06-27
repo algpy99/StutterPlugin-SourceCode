@@ -64,11 +64,11 @@ private:
     float wetLevel = false;
 
     Distortion<float> distortion;
-    float drive = false;
-    float mix = false;
-    float output = false;
+    //float drive = false;
+    //float mix = false;
+    //float output = false;
 
-    LFOGenerator lfo;
+    LFOGenerator<float> lfo;
 
     juce::dsp::Reverb reverb;
 
