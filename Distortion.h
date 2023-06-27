@@ -70,7 +70,7 @@ public:
 
     SampleType processHardClipper(SampleType inputSample)
     {
-        float wetSignal = inputSample * juce::Decibels::decibelsToGain(_input.getNextValue());
+        auto wetSignal = inputSample * juce::Decibels::decibelsToGain(_input.getNextValue());
 
         if (std::abs(wetSignal) > 0.99)
         {
@@ -84,12 +84,40 @@ public:
 
     SampleType processSoftClipper(SampleType inputSample)
     {
-        return inputSample;
+        auto wetSignal = inputSample * juce::Decibels::decibelsToGain(_input.getNextValue());
+
+        wetSignal = _piDivisor * std::atan(wetSignal);
+
+        wetSignal *= 2.0;
+
+        wetSignal *= juce::Decibels::decibelsToGain(_input.getNextValue() * -0.25);
+
+        if (std::abs(wetSignal) > 0.99)
+        {
+            wetSignal *= 0.99 / std::abs(wetSignal);
+        }
+
+        auto mix = (1.0 - _mix.getNextValue()) * inputSample + wetSignal * _mix.getNextValue();
+
+        return mix * juce::Decibels::decibelsToGain(_output.getNextValue());
     }
 
     SampleType processSaturation(SampleType inputSample)
     {
-        return inputSample;
+        auto wetSignal = inputSample * juce::Decibels::decibelsToGain(_input.getNextValue());
+
+        if (wetSignal >= 0.0)
+        {
+            wetSignal = std::tanh(wetSignal);
+        }
+        else
+        {
+            wetSignal = std::tanh(std::sinh(wetSignal)) - 0.2 * wetSignal * std::sin(juce::MathConstants<float>::pi * wetSignal);
+        }
+
+        auto mix = (1.0 - _mix.getNextValue()) * inputSample + wetSignal * _mix.getNextValue();
+
+        return mix * juce::Decibels::decibelsToGain(_output.getNextValue());
     }
 
     enum class DistortionModel 
@@ -111,6 +139,8 @@ private:
     juce::SmoothedValue<float> _output;
 
     float _sampleRate = 44100.0f;
+
+    float _piDivisor = 2.0 / juce::MathConstants<float>::pi;
 
     DistortionModel _model = DistortionModel::kHard;
 };

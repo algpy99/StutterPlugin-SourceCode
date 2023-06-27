@@ -27,6 +27,8 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("wetLevel", this);
 
     treeState.addParameterListener("drive", this);
+
+    treeState.addParameterListener("disModel", this);
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
 
@@ -45,6 +47,8 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
 {
     treeState.removeParameterListener("wetLevel", this);
 
+    treeState.removeParameterListener("disModel", this);
+
     treeState.removeParameterListener("drive", this);
     treeState.removeParameterListener("mix", this);
     treeState.removeParameterListener("output", this);
@@ -54,13 +58,19 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
 
+    juce::StringArray disModels = {"Hard", "Soft", "Saturation"};
+
     auto pWetLevel = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
-    
+
+    auto pDisModel = std::make_unique<juce::AudioParameterChoice>("disModel", "Distortion Model", disModels, 0);
+
     auto pDrive = std::make_unique<juce::AudioParameterFloat>("drive", "Drive", 0.0f, 24.0f, 0.0f);
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
     auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
     
     params.push_back(std::move(pWetLevel));
+
+    params.push_back(std::move(pDisModel));
 
     params.push_back(std::move(pDrive));
     params.push_back(std::move(pMix));
@@ -74,20 +84,12 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
 {
     updateParameters();
 
-    
     if (parameterID == "wetLevel")
     {
         wetLevel = newValue;
         DBG("wetLevel is: " << newValue);
     }
 
-    /*
-    if (parameterID == "drive")
-    {
-        drive = newValue;
-        DBG("drive is: " << newValue);
-    }
-    */
     treeState.addParameterListener("wetLevel", this);
 
     treeState.addParameterListener("drive", this);
@@ -97,6 +99,20 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
 
 void StutterPluginAudioProcessor::updateParameters()
 {
+    auto model = static_cast<int>(treeState.getRawParameterValue("disModel")->load());
+    switch (model)
+    {
+    case 0: 
+        distortion.setDistortionModel(Distortion<float>::DistortionModel::kHard);
+        break;
+    case 1:
+        distortion.setDistortionModel(Distortion<float>::DistortionModel::kSoft);
+        break;
+    case 2:
+        distortion.setDistortionModel(Distortion<float>::DistortionModel::kSaturation);
+        break;
+    }
+
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
     distortion.setOutput(treeState.getRawParameterValue("output")->load());

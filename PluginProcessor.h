@@ -67,6 +67,8 @@ private:
     float mix = false;
     float output = false;
 
+    float disModel = false;
+
     /*
     const juce::String inputID = "input";
     const juce::String inputName = "Input";
