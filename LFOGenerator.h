@@ -68,6 +68,7 @@ public:
 
     SampleType processSine(SampleType inputSample)
     {
+        //float wetSignal *= sin(2 * juce::double_Pi * _frequency * _time);
         return inputSample;
     }
 
@@ -93,8 +94,11 @@ public:
 
     void setLFOType(LFOType newType);
 
+    void getCurrentLFOValue(SampleType newvalue);
+
 private:
-    juce::SmoothedValue<float> _frequency;
+    juce::SmoothedValue<float> _frequency = 50;
+    juce::SmoothedValue<float> _time = 10;
     juce::SmoothedValue<float> _mix;
 
     float _sampleRate = 44100.0f;

@@ -67,7 +67,7 @@ void LFOGenerator<SampleType>::setLFOType(LFOType newType)
         {
             _type = newType;
             break;
-    }
+        }
     }
 }
 
