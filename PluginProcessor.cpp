@@ -253,6 +253,8 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
 
+    //lfo.processSample()
+
     /*
     for (int ch = 0; ch < block.getNumChannels(); ++ch)
     {
