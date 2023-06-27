@@ -9,7 +9,6 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "Distortion.h"
 
 //==============================================================================
 StutterPluginAudioProcessor::StutterPluginAudioProcessor()
@@ -30,6 +29,8 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
 
+    treeState.addParameterListener("waveType", this);
+
     /*
     float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
     float damping = 0.5f;     /**< Damping, 0 to 1.0, where 0 is not damped, 1.0 is fully damped. 
@@ -48,23 +49,32 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
     treeState.removeParameterListener("drive", this);
     treeState.removeParameterListener("mix", this);
     treeState.removeParameterListener("output", this);
+
+    treeState.addParameterListener("waveType", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
     
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params;
 
+    juce::StringArray waveTypes = { "Sine", "Saw", "Square" };
+
+
     auto pWetLevel = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
     
     auto pDrive = std::make_unique<juce::AudioParameterFloat>("drive", "Drive", 0.0f, 24.0f, 0.0f);
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
     auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
+
+    auto pWaveType = std::make_unique<juce::AudioParameterChoice>("waveType", "Wave Type", waveTypes, 0);
     
     params.push_back(std::move(pWetLevel));
 
     params.push_back(std::move(pDrive));
     params.push_back(std::move(pMix));
     params.push_back(std::move(pOutput));
+
+    params.push_back(std::move(pWaveType));
     
 
     return { params.begin(), params.end() };
@@ -81,13 +91,6 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
         DBG("wetLevel is: " << newValue);
     }
 
-    /*
-    if (parameterID == "drive")
-    {
-        drive = newValue;
-        DBG("drive is: " << newValue);
-    }
-    */
     treeState.addParameterListener("wetLevel", this);
 
     treeState.addParameterListener("drive", this);
@@ -97,6 +100,20 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
 
 void StutterPluginAudioProcessor::updateParameters()
 {
+    auto model = static_cast<int>(treeState.getRawParameterValue("waveType")->load());
+    switch (model)
+    {
+    case 0:
+        lfo.setWaveType(LFOGenerator::WaveType::kSine);
+        break;
+    case 1:
+        lfo.setWaveType(LFOGenerator::WaveType::kSaw);
+        break;
+    case 2:
+        lfo.setWaveType(LFOGenerator::WaveType::kSquare);
+        break;
+    }
+
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
     distortion.setOutput(treeState.getRawParameterValue("output")->load());
@@ -137,7 +154,7 @@ bool StutterPluginAudioProcessor::isMidiEffect() const
 
 double StutterPluginAudioProcessor::getTailLengthSeconds() const
 {
-    return 0.0;
+return 0.0;
 }
 
 int StutterPluginAudioProcessor::getNumPrograms()
@@ -177,6 +194,10 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
 
     reverb.reset();
     reverb.prepare(spec);
+
+    lfo.reset();
+    lfo.prepare(spec);
+    lfo.setParameter(LFOGenerator::ParameterId::kFrequency, 500);
 
     updateParameters();
 }
@@ -222,7 +243,7 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    juce::dsp::AudioBlock<float> block {buffer};
+    juce::dsp::AudioBlock<float> block{ buffer };
 
     parameters.wetLevel = wetLevel;
 
@@ -231,6 +252,18 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 
     distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
+
+    /*
+    for (int ch = 0; ch < block.getNumChannels(); ++ch)
+    {
+        float* data = block.getChannelPointer(ch);
+        for (int sample = 0; sample < block.getNumSamples(); ++sample)
+        {
+            lfo.processSample(sample);
+            //auto gain = lfo.getCurrentLFOValue();
+        }
+    }
+    */
 
 }
 
