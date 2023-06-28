@@ -37,9 +37,7 @@ public:
             auto* outputSamples = outputBlock.getChannelPointer(channel);
 
             for (size_t i = 0; i < numSamples; ++i)
-            {
                 outputSamples[i] = processSample(inputSamples[i]);
-            }
         }
 
     };
@@ -68,7 +66,16 @@ public:
 
     SampleType processSine(SampleType inputSample)
     {
-        //float wetSignal *= sin(2 * juce::double_Pi * _frequency * _time);
+        float _depth = 1;
+        float _frequency = 20;
+        float _samplingFrequency = 44100;
+        float _time = 0;
+        float _delta = 1/ _samplingFrequency;
+        float modulator = 1 + _depth * sin(2 * juce::MathConstants<float>::pi * _frequency * _time); // frequency between 0 and 20Hz
+        _time += _delta;
+        inputSample *= modulator;
+        DBG("modulator is: " << modulator);
+
         return inputSample;
     }
 
@@ -97,9 +104,9 @@ public:
     void getCurrentLFOValue(SampleType newvalue);
 
 private:
-    juce::SmoothedValue<float> _frequency = 50;
-    juce::SmoothedValue<float> _time = 10;
-    juce::SmoothedValue<float> _mix;
+    //juce::SmoothedValue<float> _frequency = 50;
+    //juce::SmoothedValue<float> _time = 10;
+    //juce::SmoothedValue<float> _mix;
 
     float _sampleRate = 44100.0f;
 

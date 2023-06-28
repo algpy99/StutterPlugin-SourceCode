@@ -70,16 +70,18 @@ public:
 
     SampleType processHardClipper(SampleType inputSample)
     {
-        float wetSignal = inputSample * juce::Decibels::decibelsToGain(_input.getNextValue());
+        //float wetSignal = inputSample * juce::Decibels::decibelsToGain(_input.getNextValue());
 
+        float wetSignal = inputSample;
         if (std::abs(wetSignal) > 0.99)
         {
             wetSignal *= 0.99 / std::abs(wetSignal);
         }
 
-        auto mix = (1.0 - _mix.getNextValue()) * inputSample + wetSignal * _mix.getNextValue();
+        //auto mix = (1.0 - _mix.getNextValue()) * inputSample + wetSignal * _mix.getNextValue();
 
-        return mix * juce::Decibels::decibelsToGain(_output.getNextValue());
+        //return mix * juce::Decibels::decibelsToGain(_output.getNextValue());
+        return wetSignal;
     }
 
     SampleType processSoftClipper(SampleType inputSample)

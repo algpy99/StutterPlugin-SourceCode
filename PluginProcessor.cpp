@@ -88,7 +88,7 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
     if (parameterID == "wetLevel")
     {
         wetLevel = newValue;
-        DBG("wetLevel is: " << newValue);
+        //DBG("wetLevel is: " << newValue);
     }
 
     treeState.addParameterListener("wetLevel", this);
@@ -195,6 +195,9 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     reverb.reset();
     reverb.prepare(spec);
 
+    lfo.reset();
+    lfo.prepare(spec);
+
     /*
     lfo.reset();
     lfo.prepare(spec);
@@ -251,9 +254,11 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     reverb.setParameters(parameters);
 
-    reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
+    //reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 
-    distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
+    //distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
+
+    lfo.process(juce::dsp::ProcessContextReplacing<float>(block));
 
     //lfo.processSample()
 
