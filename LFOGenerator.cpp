@@ -10,66 +10,42 @@
 
 #include "LFOGenerator.h"
 
-template <typename SampleType>
-LFOGenerator<SampleType>::LFOGenerator()
+void alex_dsp::LFOGenerator::prepare(const juce::dsp::ProcessSpec &spec)
 {
-
+    m_frequency = 1;
+    m_time = 0.0;
+    sampleRate = spec.sampleRate;
+    m_deltaTime = 1 / sampleRate;
 }
 
-template <typename SampleType>
-void LFOGenerator<SampleType>::prepare(juce::dsp::ProcessSpec& spec)
-{
-    _sampleRate = spec.sampleRate;
-    reset();
+void alex_dsp::LFOGenerator::process()
+{    
+    if (m_GlobalBypass)
+    {
+        m_LFOValue = 0.0;
+        return;
+    }
+
+    
+    if (m_time >= std::numeric_limits<float>::max())
+    {
+        m_time = 0.0;
+    }
+    
+    m_LFOValue = sin(2 * juce::double_Pi * m_frequency * m_time);
+    m_time += m_deltaTime;
 }
 
-template <typename SampleType>
-void LFOGenerator<SampleType>::reset()
+float alex_dsp::LFOGenerator::getCurrentLFOValue()
 {
-    if (_sampleRate <= 0) return;
-
-    //_frequency.reset(_sampleRate, 0.02);
-    //_frequency.setTargetValue(0.0);
-
-    //_mix.reset(_sampleRate, 0.02);
-    //_mix.setTargetValue(1.0);
+    return m_LFOValue;
 }
 
-template <typename SampleType>
-void LFOGenerator<SampleType>::setFrequency(SampleType newFrequency)
+void alex_dsp::LFOGenerator::setParameter(ParameterId parameter, float parameterValue)
 {
-    //_frequency.setTargetValue(newFrequency);
-    //DBG("frequency is: " << newFrequency);
-}
-
-template <typename SampleType>
-void LFOGenerator<SampleType>::setMix(SampleType newMix)
-{
-    //_mix.setTargetValue(newMix);
-}
-
-template <typename SampleType>
-void LFOGenerator<SampleType>::setLFOType(LFOType newType)
-{
-    switch (newType)
-        {
-        case LFOType::kSine:
-        {
-            _type = newType;
-            break;
-        }
-        case LFOType::kSaw:
-        {
-            _type = newType;
-            break;
-        }
-        case LFOType::kSquare:
-        {
-            _type = newType;
-            break;
-        }
+    switch (parameter)
+    {
+    case alex_dsp::LFOGenerator::ParameterId::kFrequency: m_frequency = static_cast<int>(parameterValue); break;
+    case alex_dsp::LFOGenerator::ParameterId::kBypass: m_GlobalBypass = static_cast<bool>(parameterValue); break;
     }
 }
-
-template class LFOGenerator<float>;
-template class LFOGenerator<double>;

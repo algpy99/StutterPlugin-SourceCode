@@ -68,7 +68,7 @@ private:
     //float mix = false;
     //float output = false;
 
-    LFOGenerator<float> lfo;
+    alex_dsp::LFOGenerator lfo;
 
     juce::dsp::Reverb reverb;
 

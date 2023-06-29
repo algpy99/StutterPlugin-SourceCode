@@ -29,7 +29,7 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
 
-    treeState.addParameterListener("lfoType", this);
+    //treeState.addParameterListener("lfoType", this);
 
     /*
     float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
@@ -50,7 +50,7 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
     treeState.removeParameterListener("mix", this);
     treeState.removeParameterListener("output", this);
 
-    treeState.addParameterListener("lfoType", this);
+    //treeState.addParameterListener("lfoType", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
@@ -66,7 +66,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
     auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
 
-    auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
+    //auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
     
     params.push_back(std::move(pWetLevel));
 
@@ -74,7 +74,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     params.push_back(std::move(pMix));
     params.push_back(std::move(pOutput));
 
-    params.push_back(std::move(pLFOType));
+    //params.push_back(std::move(pLFOType));
     
 
     return { params.begin(), params.end() };
@@ -100,6 +100,7 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
 
 void StutterPluginAudioProcessor::updateParameters()
 {
+    /*
     auto type = static_cast<int>(treeState.getRawParameterValue("lfoType")->load());
     switch (type)
     {
@@ -113,6 +114,7 @@ void StutterPluginAudioProcessor::updateParameters()
         lfo.setLFOType(LFOGenerator<float>::LFOType::kSquare);
         break;
     }
+    */
    
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
@@ -195,14 +197,8 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     reverb.reset();
     reverb.prepare(spec);
 
-    lfo.reset();
     lfo.prepare(spec);
-
-    /*
-    lfo.reset();
-    lfo.prepare(spec);
-    lfo.setParameter(LFOGenerator::ParameterId::kFrequency, 500);
-    */
+    lfo.setParameter(alex_dsp::LFOGenerator::ParameterId::kFrequency, 2);
 
     updateParameters();
 }
@@ -248,7 +244,7 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    juce::dsp::AudioBlock<float> block{ buffer };
+    juce::dsp::AudioBlock<float> block (buffer);
 
     parameters.wetLevel = wetLevel;
 
@@ -258,21 +254,20 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     //distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
 
-    lfo.process(juce::dsp::ProcessContextReplacing<float>(block));
-
-    //lfo.processSample()
-
-    /*
     for (int ch = 0; ch < block.getNumChannels(); ++ch)
     {
         float* data = block.getChannelPointer(ch);
         for (int sample = 0; sample < block.getNumSamples(); ++sample)
         {
-            lfo.processSample(sample);
+            lfo.process();
             //auto gain = lfo.getCurrentLFOValue();
+            data[sample] = lfo.getCurrentLFOValue();
+            //float lfoval = lfo.getCurrentLFOValue();
+            //DBG("lfo value: " << lfoval);
+
         }
     }
-    */
+    
 
 }
 
