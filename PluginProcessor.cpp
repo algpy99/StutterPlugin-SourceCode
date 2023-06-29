@@ -250,9 +250,9 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
     reverb.setParameters(parameters);
 
-    //reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
+    reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 
-    //distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
+    distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
 
     for (int ch = 0; ch < block.getNumChannels(); ++ch)
     {
@@ -260,10 +260,7 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         for (int sample = 0; sample < block.getNumSamples(); ++sample)
         {
             lfo.process();
-            //auto gain = lfo.getCurrentLFOValue();
-            data[sample] = lfo.getCurrentLFOValue();
-            //float lfoval = lfo.getCurrentLFOValue();
-            //DBG("lfo value: " << lfoval);
+            data[sample] = buffer.getSample(ch, sample) * lfo.getCurrentLFOValue();
 
         }
     }
