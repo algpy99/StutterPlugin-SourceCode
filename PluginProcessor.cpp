@@ -30,6 +30,11 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
 
+<<<<<<< Updated upstream
+=======
+    treeState.addParameterListener("lfoType", this);
+
+>>>>>>> Stashed changes
     /*
     float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
     float damping = 0.5f;     /**< Damping, 0 to 1.0, where 0 is not damped, 1.0 is fully damped. 
@@ -48,6 +53,11 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
     treeState.removeParameterListener("drive", this);
     treeState.removeParameterListener("mix", this);
     treeState.removeParameterListener("output", this);
+<<<<<<< Updated upstream
+=======
+
+    treeState.addParameterListener("lfoType", this);
+>>>>>>> Stashed changes
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
@@ -59,12 +69,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     auto pDrive = std::make_unique<juce::AudioParameterFloat>("drive", "Drive", 0.0f, 24.0f, 0.0f);
     auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
     auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
+<<<<<<< Updated upstream
+=======
+
+    auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
+>>>>>>> Stashed changes
     
     params.push_back(std::move(pWetLevel));
 
     params.push_back(std::move(pDrive));
     params.push_back(std::move(pMix));
     params.push_back(std::move(pOutput));
+<<<<<<< Updated upstream
+=======
+
+    params.push_back(std::move(pLFOType));
+>>>>>>> Stashed changes
     
 
     return { params.begin(), params.end() };
@@ -97,6 +117,25 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
 
 void StutterPluginAudioProcessor::updateParameters()
 {
+<<<<<<< Updated upstream
+=======
+    
+    auto type = static_cast<int>(treeState.getRawParameterValue("lfoType")->load());
+    switch (type)
+    {
+    case 0:
+        lfo.setLFOType(alex_dsp::LFOGenerator::LFOType::kSine);
+        break;
+    case 1:
+        lfo.setLFOType(alex_dsp::LFOGenerator::LFOType::kSaw);
+        break;
+    case 2:
+        lfo.setLFOType(alex_dsp::LFOGenerator::LFOType::kSquare);
+        break;
+    }
+    
+   
+>>>>>>> Stashed changes
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
     distortion.setOutput(treeState.getRawParameterValue("output")->load());

@@ -63,9 +63,12 @@ private:
     float wetLevel = false;
 
     Distortion<float> distortion;
+<<<<<<< Updated upstream
     float drive = false;
     float mix = false;
     float output = false;
+=======
+>>>>>>> Stashed changes
 
     /*
     const juce::String inputID = "input";
