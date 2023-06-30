@@ -42,7 +42,7 @@ template <typename SampleType>
 void Distortion<SampleType>::setDrive(SampleType newDrive) 
 {
     _input.setTargetValue(newDrive);
-    DBG("drive is: " << newDrive);
+    
 } 
 
 template <typename SampleType>

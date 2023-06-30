@@ -31,15 +31,8 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("output", this);
 
     treeState.addParameterListener("lfoType", this);
-    /*
-    float roomSize   = 0.5f;     /**< Room size, 0 to 1.0, where 1.0 is big, 0 is small. 
-    float damping = 0.5f;     /**< Damping, 0 to 1.0, where 0 is not damped, 1.0 is fully damped. 
-    float wetLevel = 0.33f;    /**< Wet level, 0 to 1.0 
-    float dryLevel = 0.4f;     /**< Dry level, 0 to 1.0 
-    float width = 1.0f;     /**< Reverb width, 0 to 1.0, where 1.0 is very wide. 
-    float freezeMode = 0.0f;     /**< Freeze mode - values < 0.5 are "normal" mode, values > 0.5
-                                      put the reverb into a continuous feedback loop.
-    */
+
+    treeState.addParameterListener("frequency", this);
 }
 
 StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
@@ -51,6 +44,8 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
     treeState.removeParameterListener("output", this);
 
     treeState.addParameterListener("lfoType", this);
+
+    treeState.addParameterListener("frequency", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
@@ -66,6 +61,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
 
     auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
+
+    auto pFrequency = std::make_unique<juce::AudioParameterFloat>("frequency", "Frequency", 0.0f, 20.0f, 2.0f);
     
     params.push_back(std::move(pWetLevel));
 
@@ -74,8 +71,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     params.push_back(std::move(pOutput));
 
     params.push_back(std::move(pLFOType));
-    
 
+    params.push_back(std::move(pFrequency));
+    
     return { params.begin(), params.end() };
 }
 
@@ -97,11 +95,14 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
         DBG("drive is: " << newValue);
     }
     */
+
     treeState.addParameterListener("wetLevel", this);
 
     treeState.addParameterListener("drive", this);
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
+
+    treeState.addParameterListener("frequency", this);
 }
 
 void StutterPluginAudioProcessor::updateParameters()
@@ -120,10 +121,16 @@ void StutterPluginAudioProcessor::updateParameters()
         lfo.setLFOType(alex_dsp::LFOGenerator::LFOType::kSquare);
         break;
     }
+
+    parameters.wetLevel = wetLevel;
+
+    reverb.setParameters(parameters);
     
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
     distortion.setOutput(treeState.getRawParameterValue("output")->load());
+
+    lfo.setFrequency(treeState.getRawParameterValue("frequency")->load());
 }
 
 //==============================================================================
@@ -202,6 +209,8 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     reverb.reset();
     reverb.prepare(spec);
 
+    lfo.prepare(spec);
+
     updateParameters();
 }
 
@@ -246,15 +255,22 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    juce::dsp::AudioBlock<float> block {buffer};
-
-    parameters.wetLevel = wetLevel;
-
-    reverb.setParameters(parameters);
+    juce::dsp::AudioBlock<float> block(buffer);
 
     reverb.process(juce::dsp::ProcessContextReplacing<float>(block));
 
     distortion.process(juce::dsp::ProcessContextReplacing<float>(block));
+
+    for (int ch = 0; ch < block.getNumChannels(); ++ch)
+    {
+        float* data = block.getChannelPointer(ch);
+        for (int sample = 0; sample < block.getNumSamples(); ++sample)
+        {
+            lfo.process();
+            data[sample] = buffer.getSample(ch, sample) * lfo.getCurrentLFOValue();
+
+        }
+    }
 
 }
 

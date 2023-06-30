@@ -19,11 +19,14 @@ public:
 
     void prepare(const juce::dsp::ProcessSpec& spec);
 
-    enum class ParameterId
+    void reset();
+
+    struct Parameters
     {
-        kFrequency,
-        kBypass,
+        float m_frequency = 2;
     };
+
+    void setFrequency(float newFrequency);
 
     void process();
 
@@ -37,7 +40,7 @@ public:
 
     float getCurrentLFOValue();
 
-    void setParameter(ParameterId parameter, float parameterValue);
+    void setParameter(Parameters parameter, float parameterValue);
 
     enum class LFOType
     {
@@ -54,7 +57,8 @@ private:
 
     float sampleRate;
 
-    float m_frequency;
+    juce::SmoothedValue<float> m_frequency;
+
     float m_time;
     float m_deltaTime;
     float m_GlobalBypass{ false };
