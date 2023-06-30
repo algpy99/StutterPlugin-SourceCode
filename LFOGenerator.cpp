@@ -32,7 +32,11 @@ void alex_dsp::LFOGenerator::process()
         m_time = 0.0;
     }
     
-    m_LFOValue = sin(2 * juce::double_Pi * m_frequency * m_time);
+    //m_LFOValue = sin(2 * juce::double_Pi * m_frequency * m_time);
+
+    float phase = (m_time * m_frequency) - floor(m_time * m_frequency);
+    m_LFOValue = (2.0f * 10) * (phase < 0.5f ? phase : (1.0f - phase)) - 10;
+
     m_time += m_deltaTime;
 }
 
