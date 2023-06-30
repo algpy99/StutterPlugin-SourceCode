@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "Distortion.h"
+#include "LFOGenerator.h"
 
 //==============================================================================
 /**
@@ -63,20 +64,11 @@ private:
     float wetLevel = false;
 
     Distortion<float> distortion;
-    float drive = false;
-    float mix = false;
-    float output = false;
+    //float drive = false;
+    //float mix = false;
+    //float output = false;
 
-    /*
-    const juce::String inputID = "input";
-    const juce::String inputName = "Input";
-
-    const juce::String outputID = "output";
-    const juce::String outputName = "Output";
-
-    const juce::String mixID = "mix";
-    const juce::String mixName = "Mix";
-    */
+    alex_dsp::LFOGenerator lfo;
 
     juce::dsp::Reverb reverb;
 
