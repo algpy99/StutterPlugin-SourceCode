@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 #include "Distortion.h"
+#include "LFOGenerator.h"
 
 //==============================================================================
 /**
@@ -63,25 +64,10 @@ private:
     float wetLevel = false;
 
     Distortion<float> distortion;
-<<<<<<< Updated upstream
-    float drive = false;
-    float mix = false;
-    float output = false;
-=======
->>>>>>> Stashed changes
-
-    /*
-    const juce::String inputID = "input";
-    const juce::String inputName = "Input";
-
-    const juce::String outputID = "output";
-    const juce::String outputName = "Output";
-
-    const juce::String mixID = "mix";
-    const juce::String mixName = "Mix";
-    */
 
     juce::dsp::Reverb reverb;
+
+    alex_dsp::LFOGenerator lfo;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void parameterChanged (const juce::String& parameterID, float newValue) override;
