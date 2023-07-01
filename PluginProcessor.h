@@ -67,6 +67,10 @@ private:
 
     juce::dsp::Reverb reverb;
 
+    juce::dsp::StateVariableTPTFilter<float> LPfilter;
+
+    juce::dsp::StateVariableTPTFilter<float> HPfilter;
+
     alex_dsp::LFOGenerator lfo;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();

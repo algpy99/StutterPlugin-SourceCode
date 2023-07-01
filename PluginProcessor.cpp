@@ -33,6 +33,9 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
     treeState.addParameterListener("lfoType", this);
 
     treeState.addParameterListener("frequency", this);
+
+    treeState.addParameterListener("lowPass", this);
+    treeState.addParameterListener("highPass", this);
 }
 
 StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
@@ -46,6 +49,9 @@ StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
     treeState.addParameterListener("lfoType", this);
 
     treeState.addParameterListener("frequency", this);
+
+    treeState.addParameterListener("lowPass", this);
+    treeState.addParameterListener("highPass", this);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor::createParameterLayout() {
@@ -63,6 +69,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
 
     auto pFrequency = std::make_unique<juce::AudioParameterFloat>("frequency", "Frequency", 0.0f, 20.0f, 2.0f);
+
+    auto pLowPass = std::make_unique<juce::AudioParameterFloat>("lowPass", "High Cut", 20.0f, 20000.0f, 0.0f);
+    auto pHighPass = std::make_unique<juce::AudioParameterFloat>("highPass", "Low Cut", 20.0f, 20000.0f, 0.0f);
     
     params.push_back(std::move(pWetLevel));
 
@@ -73,7 +82,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
     params.push_back(std::move(pLFOType));
 
     params.push_back(std::move(pFrequency));
-    
+
+    params.push_back(std::move(pLowPass));
+    params.push_back(std::move(pHighPass));
+
     return { params.begin(), params.end() };
 }
 
@@ -103,6 +115,9 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
     treeState.addParameterListener("output", this);
 
     treeState.addParameterListener("frequency", this);
+
+    treeState.addParameterListener("lowPass", this);
+    treeState.addParameterListener("HighPass", this);
 }
 
 void StutterPluginAudioProcessor::updateParameters()
@@ -131,6 +146,9 @@ void StutterPluginAudioProcessor::updateParameters()
     distortion.setOutput(treeState.getRawParameterValue("output")->load());
 
     lfo.setFrequency(treeState.getRawParameterValue("frequency")->load());
+
+    LPfilter.setCutoffFrequency(treeState.getRawParameterValue("lowPass")->load());
+    HPfilter.setCutoffFrequency(treeState.getRawParameterValue("highPass")->load());
 }
 
 //==============================================================================
@@ -211,6 +229,12 @@ void StutterPluginAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
 
     lfo.prepare(spec);
 
+    LPfilter.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
+    LPfilter.prepare(spec);
+
+    LPfilter.setType(juce::dsp::StateVariableTPTFilterType::highpass);
+    HPfilter.prepare(spec);
+
     updateParameters();
 }
 
@@ -271,6 +295,8 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
 
         }
     }
+    LPfilter.process(juce::dsp::ProcessContextReplacing<float>(block));
+    HPfilter.process(juce::dsp::ProcessContextReplacing<float>(block));
 
 }
 
