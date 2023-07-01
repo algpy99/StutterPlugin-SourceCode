@@ -9,7 +9,6 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include "Distortion.h"
 
 //==============================================================================
 StutterPluginAudioProcessor::StutterPluginAudioProcessor()
@@ -25,15 +24,11 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
 #endif
 {
     treeState.addParameterListener("wetLevel", this);
-
     treeState.addParameterListener("drive", this);
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
-
     treeState.addParameterListener("lfoType", this);
-
     treeState.addParameterListener("frequency", this);
-
     treeState.addParameterListener("lowPass", this);
     treeState.addParameterListener("highPass", this);
 }
@@ -41,15 +36,11 @@ StutterPluginAudioProcessor::StutterPluginAudioProcessor()
 StutterPluginAudioProcessor::~StutterPluginAudioProcessor()
 {
     treeState.removeParameterListener("wetLevel", this);
-
     treeState.removeParameterListener("drive", this);
     treeState.removeParameterListener("mix", this);
     treeState.removeParameterListener("output", this);
-
     treeState.addParameterListener("lfoType", this);
-
     treeState.addParameterListener("frequency", this);
-
     treeState.addParameterListener("lowPass", this);
     treeState.addParameterListener("highPass", this);
 }
@@ -60,29 +51,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout StutterPluginAudioProcessor:
 
     juce::StringArray lfoTypes = { "Sine", "Saw", "Square" };
 
-    auto pWetLevel = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
-    
-    auto pDrive = std::make_unique<juce::AudioParameterFloat>("drive", "Drive", 0.0f, 24.0f, 0.0f);
-    auto pMix = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
-    auto pOutput = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
-
-    auto pLFOType = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
-
+    auto pWetLevel  = std::make_unique<juce::AudioParameterFloat>("wetLevel", "WetLevel", 0.0f, 1.0f, 0.5f);
+    auto pDrive     = std::make_unique<juce::AudioParameterFloat>("drive", "Drive", 0.0f, 24.0f, 0.0f);
+    auto pMix       = std::make_unique<juce::AudioParameterFloat>("mix", "Mix", 0.0f, 1.0f, 0.0f);
+    auto pOutput    = std::make_unique<juce::AudioParameterFloat>("output", "Output", -24.0f, 24.0f, 0.0f);
+    auto pLFOType   = std::make_unique<juce::AudioParameterChoice>("lfoType", "LFO Type", lfoTypes, 0);
     auto pFrequency = std::make_unique<juce::AudioParameterFloat>("frequency", "Frequency", 0.0f, 20.0f, 2.0f);
-
-    auto pLowPass = std::make_unique<juce::AudioParameterFloat>("lowPass", "High Cut", 20.0f, 20000.0f, 0.0f);
-    auto pHighPass = std::make_unique<juce::AudioParameterFloat>("highPass", "Low Cut", 20.0f, 20000.0f, 0.0f);
+    //auto pLowPass   = std::make_unique<juce::AudioParameterFloat>("lowPass", "High Cut", juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.25f));
+    auto pLowPass = std::make_unique<juce::AudioParameterFloat>("lowPass", "High Cut", 20.0f, 20000.0f, 20.0f);
+    auto pHighPass  = std::make_unique<juce::AudioParameterFloat>("highPass", "Low Cut", 20.0f, 20000.0f, 20.0f);
     
     params.push_back(std::move(pWetLevel));
-
     params.push_back(std::move(pDrive));
     params.push_back(std::move(pMix));
     params.push_back(std::move(pOutput));
-
     params.push_back(std::move(pLFOType));
-
     params.push_back(std::move(pFrequency));
-
     params.push_back(std::move(pLowPass));
     params.push_back(std::move(pHighPass));
 
@@ -100,22 +84,11 @@ void StutterPluginAudioProcessor::parameterChanged(const juce::String& parameter
         DBG("wetLevel is: " << newValue);
     }
 
-    /*
-    if (parameterID == "drive")
-    {
-        drive = newValue;
-        DBG("drive is: " << newValue);
-    }
-    */
-
     treeState.addParameterListener("wetLevel", this);
-
     treeState.addParameterListener("drive", this);
     treeState.addParameterListener("mix", this);
     treeState.addParameterListener("output", this);
-
     treeState.addParameterListener("frequency", this);
-
     treeState.addParameterListener("lowPass", this);
     treeState.addParameterListener("HighPass", this);
 }
@@ -138,15 +111,11 @@ void StutterPluginAudioProcessor::updateParameters()
     }
 
     parameters.wetLevel = wetLevel;
-
     reverb.setParameters(parameters);
-    
     distortion.setDrive(treeState.getRawParameterValue("drive")->load());
     distortion.setMix(treeState.getRawParameterValue("mix")->load());
     distortion.setOutput(treeState.getRawParameterValue("output")->load());
-
     lfo.setFrequency(treeState.getRawParameterValue("frequency")->load());
-
     LPfilter.setCutoffFrequency(treeState.getRawParameterValue("lowPass")->load());
     HPfilter.setCutoffFrequency(treeState.getRawParameterValue("highPass")->load());
 }
