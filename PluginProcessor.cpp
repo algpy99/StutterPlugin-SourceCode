@@ -261,6 +261,8 @@ void StutterPluginAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         {
             lfo.process();
             data[sample] = buffer.getSample(ch, sample) * lfo.getCurrentLFOValue();
+            //DBG("Current buffer Value" << buffer.getSample(ch, sample));
+            //DBG("Current LFO Value" << lfo.getCurrentLFOValue());
 
         }
     }
